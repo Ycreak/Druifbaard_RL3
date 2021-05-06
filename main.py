@@ -17,7 +17,6 @@
 
 # Library Imports
 import gym
-import slimevolleygym as gyms
 import sys, getopt
 import pandas as pd
 
@@ -27,6 +26,7 @@ from qlearning import Tabular_Q, Deep_Q
 from mcpg import Mcpg, Policy_Network
 from utils import Cart
 from experiments import Experiment_episode_timesteps
+from main_ppo_try import PPO
 
 def main(argv):
 
@@ -53,6 +53,7 @@ def main(argv):
     tabular_q = Tabular_Q()
     deep_q = Deep_Q()
     mcpg = Mcpg()
+    ppo = PPO()
 
     for i, arg in enumerate(argv):
 
@@ -67,7 +68,11 @@ def main(argv):
             result, losses, reward = deep_q.main(gym, exp, cart, gamma, alpha=1e-3, epsilon=epsilon, iterations=iterations)
 
         elif arg == "mcpg":
-            result = mcpg.main(gym, gyms, exp, cart, alpha=3e-4, gamma=0.9, iterations=5000, max_steps=10000, hidden_size=hidden_size)
+            result = mcpg.main(gym, exp, cart, alpha=3e-4, gamma=0.9, iterations=5000, max_steps=10000, hidden_size=hidden_size)
+
+        elif arg == "ppo":
+            ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
+
 
         elif arg == "exp_rnd_tab":
             # Here we pitch Random versus Tabular

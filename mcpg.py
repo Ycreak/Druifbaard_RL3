@@ -49,7 +49,7 @@ class Policy_Network(nn.Module):
         return highest_prob_action, log_prob
 
 class Mcpg:
-    def main(self, gym, gyms, exp, cart, alpha, gamma, iterations, max_steps, hidden_size):
+    def main(self, gym, exp, cart, alpha, gamma, iterations, max_steps, hidden_size):
         env = gym.make('SlimeVolley-v0')
         policy_net = Policy_Network(12, 8, hidden_size, alpha)
         

@@ -1,4 +1,3 @@
-import gym
 import numpy as np
 import tensorflow as tf 
 import tensorflow_probability as tfp
@@ -11,8 +10,8 @@ test_per_n = 5    # Size of testing sequence
 epochs = 10       # Amount of learning iterations over the batch
 steps = 5_000     # Maximum amount of learning steps before calling quits
 max_score = 200   # Maximum reward value for one episode
-gamma = 1         # Gamma value for algorithm
-lr = 7e-3         # Learning rate of the agent optimizers
+_gamma = 0.99     # Gamma value for algorithm
+_lr = 7e-3         # Learning rate of the agent optimizers
 units = 128       # Neurons in the actor and critic layer
 tf.random.set_seed(336_699)
 
@@ -40,11 +39,11 @@ class actor(tf.keras.Model):
         a = self.a(x)
         return a
 
-class agent():
+class _agent():
     def __init__(self, gamma=0.99):
         self.gamma = gamma
-        self.a_opt = tf.keras.optimizers.Adam(learning_rate=lr)
-        self.c_opt = tf.keras.optimizers.Adam(learning_rate=lr)
+        self.a_opt = tf.keras.optimizers.Adam(learning_rate=_lr)
+        self.c_opt = tf.keras.optimizers.Adam(learning_rate=_lr)
         self.actor = actor()
         self.critic = critic()
         self.clip_pram = 0.2
@@ -104,113 +103,124 @@ class agent():
         self.c_opt.apply_gradients(zip(grads2, self.critic.trainable_variables))
         return a_loss, c_loss
 
-def test_reward(env):
-    total_reward = 0
-    state = env.reset()
-    done = False
-    while not done:
-        action = np.argmax(agent.actor(np.array([state])).numpy())
-        next_state, reward, done, _ = env.step(action)
-        state = next_state
-        total_reward += reward
-
-    return total_reward
-
-def preprocess(states, actions, rewards, done, values, gamma):
-    g = 0
-    lmbda = 0.95
-    returns = []
-    for i in reversed(range(len(rewards))):
-        delta = rewards[i] + gamma * values[i + 1] * done[i] - values[i]
-        g = delta + gamma * lmbda * dones[i] * g
-        returns.append(g + values[i])
-
-    returns.reverse()
-    adv = np.array(returns, dtype=np.float32) - values[:-1]
-    adv = (adv - np.mean(adv)) / (np.std(adv) + 1e-10)
-    states = np.array(states, dtype=np.float32)
-    actions = np.array(actions, dtype=np.int32)
-    returns = np.array(returns, dtype=np.float32)
-    return states, actions, returns, adv    
 
 
-# Create the cartpole environment
-env = gym.make("CartPole-v0")
 
-# Create the agent
-agent = agent()
+class PPO():
+    def test_reward(self, env, agent):
+        total_reward = 0
+        state = env.reset()
+        done = False
+        while not done:
+            action = np.argmax(agent.actor(np.array([state])).numpy())
+            next_state, reward, done, _ = env.step(action)
+            state = next_state
+            total_reward += reward
 
-target = False
-ep_reward, total_avgr, avg_rewards_list = [], [], []
-gross_reward, gross_n, total_episodes = 0, 0, 0
+        return total_reward
 
-# Proceed in training steps
-for _ in range(steps):
-    if target:
-        break
+    def preprocess(self, states, actions, rewards, done, values, gamma, dones):
+        g = 0
+        lmbda = 0.95
+        returns = []
+        for i in reversed(range(len(rewards))):
+            delta = rewards[i] + gamma * values[i + 1] * done[i] - values[i]
+            g = delta + gamma * lmbda * dones[i] * g
+            returns.append(g + values[i])
 
-    done = False
-    state = env.reset()
+        returns.reverse()
+        adv = np.array(returns, dtype=np.float32) - values[:-1]
+        adv = (adv - np.mean(adv)) / (np.std(adv) + 1e-10)
+        states = np.array(states, dtype=np.float32)
+        actions = np.array(actions, dtype=np.int32)
+        returns = np.array(returns, dtype=np.float32)
+        return states, actions, returns, adv    
 
-    actor_loss, critic_loss = [], []
-    values, dones = [], []
+    def main(self, gym, exp, cart, gamma, alpha, iterations):
+        # Arguments
+        _gamma = gamma
+        _lr = alpha
+        steps = iterations
 
-    agent.clear_buffer()
+        # Create the cartpole environment
+        env = gym.make("CartPole-v0")
 
-    # Collect experience
-    total_episodes += buffer_size
-    for _ in range(buffer_size):
-        action = agent.act(state)
-        value = agent.critic(np.array([state])).numpy()
-        next_state, reward, done, _ = env.step(action)
-        prob = agent.actor(np.array([state]))
-        dones.append(1 - done)
-        values.append(value[0][0])
+        # Create the agent
+        agent = _agent(_gamma)
 
-        # Add to buffer
-        agent.collect_experience([state, action, reward, prob[0]])
-        
-        # Proceed to next state or reset environment
-        state = next_state
-        if done:
+        target = False
+        ep_reward, total_avgr, avg_rewards_list = [], [], []
+        gross_reward, gross_n, total_episodes = 0, 0, 0
+
+        # Proceed in training steps
+        for _ in range(steps):
+            if target:
+                break
+
+            done = False
+            state = env.reset()
+
+            actor_loss, critic_loss = [], []
+            values, dones = [], []
+
+            agent.clear_buffer()
+
+            # Collect experience
+            total_episodes += buffer_size
+            for _ in range(buffer_size):
+                action = agent.act(state)
+                value = agent.critic(np.array([state])).numpy()
+                next_state, reward, done, _ = env.step(action)
+                prob = agent.actor(np.array([state]))
+                dones.append(1 - done)
+                values.append(value[0][0])
+
+                # Add to buffer
+                agent.collect_experience([state, action, reward, prob[0]])
+                
+                # Proceed to next state or reset environment
+                state = next_state
+                if done:
+                    env.reset()
+            
+            # Pre-process experience
+            value = agent.critic(np.array([state])).numpy()
+            values.append(value[0][0])
+            probs = [x[3] for x in agent.experience_replay]
+            np.reshape(probs, (len(probs), 2))
+            probs = np.stack(probs, axis=0)
+
+            states, actions, returns, adv = self.preprocess([x[0] for x in agent.experience_replay], 
+                                                            [x[1] for x in agent.experience_replay], 
+                                                            [x[2] for x in agent.experience_replay],
+                                                            dones, values, gamma, dones)
+
+            # Train agent
+            for _ in range(epochs):
+                al, cl = agent.train(states, actions, adv, probs, returns)
+                actor_loss.append(al)
+                critic_loss.append(cl)
+
+            # Testing and statistics
+            total_reward_per_n = 0
+            for _ in range(test_per_n):
+                rew = self.test_reward(env, agent)
+                total_reward_per_n += rew
+                gross_reward += rew
+                gross_n += 1
+            
+            avg_reward = gross_reward / gross_n
+            avg_reward_per_n = total_reward_per_n / test_per_n
+
+            print("Testing sequence after {} episodes:".format(total_episodes))
+            print("Average timesteps (reward) {}".format(avg_reward))
+            print("Average timesteps (reward) of last {} episodes: {}\n".format(test_per_n, avg_reward_per_n))
+
+            avg_rewards_list.append(avg_reward_per_n)
+
+            if avg_reward_per_n == max_score:
+                target = True
+
             env.reset()
-    
-    # Pre-process experience
-    value = agent.critic(np.array([state])).numpy()
-    values.append(value[0][0])
-    probs = [x[3] for x in agent.experience_replay]
-    np.reshape(probs, (len(probs), 2))
-    probs = np.stack(probs, axis=0)
 
-    states, actions, returns, adv = preprocess([x[0] for x in agent.experience_replay], 
-                                               [x[1] for x in agent.experience_replay], 
-                                               [x[2] for x in agent.experience_replay],
-                                               dones, values, gamma)
-
-    # Train agent
-    for _ in range(epochs):
-        al, cl = agent.train(states, actions, adv, probs, returns)
-
-    # Testing and statistics
-    total_reward_per_n = 0
-    for _ in range(test_per_n):
-        rew = test_reward(env)
-        total_reward_per_n += rew
-        gross_reward += rew
-        gross_n += 1
-    
-    avg_reward = gross_reward / gross_n
-    avg_reward_per_n = total_reward_per_n / test_per_n
-
-    print("Testing sequence after {} episodes:".format(total_episodes))
-    print("Average timesteps (reward) {}".format(avg_reward))
-    print("Average timesteps (reward) of last {} episodes: {}\n".format(test_per_n, avg_reward_per_n))
-
-    avg_rewards_list.append(avg_reward_per_n)
-
-    if avg_reward_per_n == max_score:
-        target = True
-
-    env.reset()
-
-env.close()
+        env.close()
