@@ -151,7 +151,7 @@ class PPO():
         target = False
         ep_reward, total_avgr, avg_rewards_list = [], [], []
         gross_reward, gross_n, total_episodes = 0, 0, 0
-
+        actor_loss, critic_loss = [], []
         # Proceed in training steps
         for _ in range(steps):
             if target:
@@ -160,7 +160,6 @@ class PPO():
             done = False
             state = env.reset()
 
-            actor_loss, critic_loss = [], []
             values, dones = [], []
 
             agent.clear_buffer()
@@ -196,10 +195,11 @@ class PPO():
                                                             dones, values, gamma, dones)
 
             # Train agent
+            aloss, closs = 0, 0
             for _ in range(epochs):
                 al, cl = agent.train(states, actions, adv, probs, returns)
-                actor_loss.append(al)
-                critic_loss.append(cl)
+                aloss += al.numpy()
+                closs += cl.numpy()
 
             # Testing and statistics
             total_reward_per_n = 0
@@ -217,6 +217,11 @@ class PPO():
             print("Average timesteps (reward) of last {} episodes: {}\n".format(test_per_n, avg_reward_per_n))
 
             avg_rewards_list.append(avg_reward_per_n)
+            actor_loss.append(aloss/epochs)
+            critic_loss.append(closs/epochs)
+
+            exp.Episode_time(total_episodes, avg_reward, avg_reward_per_n)
+
 
             if avg_reward_per_n == max_score:
                 target = True
@@ -224,3 +229,4 @@ class PPO():
             env.reset()
 
         env.close()
+        return exp.df, actor_loss, critic_loss, avg_rewards_list

@@ -1,6 +1,6 @@
 # Reinforcement Learning
 # Leiden University 2021
-# Assignment 2
+# Assignment 2 & 3
 # Philippe Bors S1773585
 # Job van der Zwaag S1893378
 # Luuk Nolden S1370898
@@ -9,6 +9,7 @@
 
 # What to install on Mac:
 #   pip3 install gym
+#   pip3 install stable_baselines
 #   brew install glfw3
 #   brew install glew
 
@@ -26,7 +27,7 @@ from qlearning import Tabular_Q, Deep_Q
 from mcpg import Mcpg, Policy_Network
 from utils import Cart
 from experiments import Experiment_episode_timesteps
-from main_ppo_try import PPO
+from ppo import PPO
 
 def main(argv):
 
@@ -41,7 +42,7 @@ def main(argv):
     iterations = 1e6
     # Maximum amount of steps per episode (used in MCPG)
     max_steps = 1e4 
-    #TODO: ???
+
     hidden_size = 128
 
     # Substantiate Cart in order to pass to other functions
@@ -392,6 +393,16 @@ def main(argv):
             # Create the plot
             exp.Create_line_plot(result, 'deep_mcpg', 'DeepQ versus MCPG')
 
+        elif arg == "exp_ppo":
+            result = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
+            exp.Create_line_plot(result, 'ppo', 'PPo')
+
+        elif arg == "exp_ppo_loss":
+            result, aloss, closs, reward = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
+
+            exp.Loss_reward(aloss, reward, 'ppo_lossa')
+            exp.Loss_reward(closs, reward, 'ppo_lossc')
+            
         else:
             print("Invalid argument.")
             exit(1)
