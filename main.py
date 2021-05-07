@@ -20,7 +20,7 @@
 import gym
 import sys, getopt
 import pandas as pd
-
+import time
 # Class Imports
 from random_action import Random_actions
 from qlearning import Tabular_Q, Deep_Q
@@ -73,7 +73,6 @@ def main(argv):
 
         elif arg == "ppo":
             ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
-
 
         elif arg == "exp_rnd_tab":
             # Here we pitch Random versus Tabular
@@ -394,8 +393,24 @@ def main(argv):
             exp.Create_line_plot(result, 'deep_mcpg', 'DeepQ versus MCPG')
 
         elif arg == "exp_ppo":
-            result = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
-            exp.Create_line_plot(result, 'ppo', 'PPo')
+            result, aloss, closs, reward = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
+            exp.Create_line_plot(result, 'ppo', 'PPO')
+            result.to_csv('./exp_ppo.csv', index = False, header=True)
+
+        elif arg == "exp_mcpg_tweaked":
+            start = time.time()
+            df_mcpg = mcpg.main(gym, exp, cart, alpha=3e-4, gamma=0.9, iterations=5000, max_steps=10000, hidden_size=hidden_size)
+            end = time.time()
+            df_mcpg.to_csv('./exp_mcpg.csv', index = False, header=True)
+            print('elapsed time: ', end-start)
+
+        elif arg == "exp_ppo_tweaked":
+            start = time.time()
+            result, aloss, closs, reward = ppo.main(gym, exp, cart, gamma=.5, alpha=7e-3, iterations=5000, _epochs=10, clip_pram=0.1)
+            end = time.time()
+            exp.Create_line_plot(result, 'ppo', 'PPO')
+            result.to_csv('./exp_ppo.csv', index = False, header=True)
+            print('elapsed time: ', end-start)
 
         elif arg == "exp_ppo_loss":
             result, aloss, closs, reward = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
