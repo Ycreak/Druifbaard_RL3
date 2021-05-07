@@ -1,4 +1,7 @@
-#DruifBaard_RL3
+# Reinforcement Learning 3
+Philippe Bors
+Job van der Zwaag
+Luuk Nolden
 
 To install dependencies, run the following command:
 
