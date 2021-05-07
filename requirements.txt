@@ -3,3 +3,5 @@ numpy
 torch
 matplotlib
 pandas
+tensorflow
+tensorflow_probability
