@@ -29,6 +29,7 @@ class Experiment_episode_timesteps:
     name = './csv/' + file + '.csv'
     df.to_csv(name, index = False, header=True)
 
+
   def Loss_reward(self, loss, reward, filename):
     # Function to print the loss and reward graph for Deep Q Learning
     df = pd.DataFrame({'losses':loss, 'reward':reward})

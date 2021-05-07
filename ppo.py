@@ -7,11 +7,10 @@ import tensorflow.keras.losses as kls
 # Hyperparameters
 buffer_size = 128 # Size of the batch to learn from
 test_per_n = 5    # Size of testing sequence
-epochs = 10       # Amount of learning iterations over the batch
-steps = 5_000     # Maximum amount of learning steps before calling quits
+steps = 20        # Maximum amount of learning steps before calling quits
 max_score = 200   # Maximum reward value for one episode
 _gamma = 0.99     # Gamma value for algorithm
-_lr = 7e-3         # Learning rate of the agent optimizers
+_lr = 7e-3        # Learning rate of the agent optimizers
 units = 128       # Neurons in the actor and critic layer
 tf.random.set_seed(336_699)
 
@@ -40,13 +39,13 @@ class actor(tf.keras.Model):
         return a
 
 class _agent():
-    def __init__(self, gamma=0.99):
+    def __init__(self, gamma=0.99, clip_pram=0.2):
         self.gamma = gamma
         self.a_opt = tf.keras.optimizers.Adam(learning_rate=_lr)
         self.c_opt = tf.keras.optimizers.Adam(learning_rate=_lr)
         self.actor = actor()
         self.critic = critic()
-        self.clip_pram = 0.2
+        self.clip_pram = clip_pram
         self.experience_replay = []
           
     def act(self, state):
@@ -136,25 +135,26 @@ class PPO():
         returns = np.array(returns, dtype=np.float32)
         return states, actions, returns, adv    
 
-    def main(self, gym, exp, cart, gamma, alpha, iterations):
+    def main(self, gym, exp, cart, gamma, alpha, iterations, _epochs=10, clip_pram=0.2):
         # Arguments
         _gamma = gamma
         _lr = alpha
+        epochs = _epochs
         steps = iterations
 
         # Create the cartpole environment
         env = gym.make("CartPole-v0")
 
         # Create the agent
-        agent = _agent(_gamma)
+        agent = _agent(_gamma, clip_pram=clip_pram)
 
         target = False
         ep_reward, total_avgr, avg_rewards_list = [], [], []
         gross_reward, gross_n, total_episodes = 0, 0, 0
         actor_loss, critic_loss = [], []
         # Proceed in training steps
-        for _ in range(steps):
-            if target:
+        for step in range(40):
+            if target == True:
                 break
 
             done = False
@@ -223,10 +223,12 @@ class PPO():
             exp.Episode_time(total_episodes, avg_reward, avg_reward_per_n)
 
 
-            if avg_reward_per_n == max_score:
+            if avg_reward_per_n == max_score or step >= steps:
                 target = True
 
             env.reset()
 
         env.close()
+        print(actor_loss)
+        print(critic_loss)
         return exp.df, actor_loss, critic_loss, avg_rewards_list

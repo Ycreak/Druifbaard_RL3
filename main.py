@@ -399,10 +399,107 @@ def main(argv):
 
         elif arg == "exp_ppo_loss":
             result, aloss, closs, reward = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000)
-
             exp.Loss_reward(aloss, reward, 'ppo_lossa')
-            exp.Loss_reward(closs, reward, 'ppo_lossc')
+        
+        elif arg == "exp_ppo_gamma":
+            result = exp.df # To allow merging of only one dataframe
+
+            gamma_list = [0.1, 0.5, 0.7, 0.9]
             
+            for gamma in gamma_list:
+                # Start new experiment and run it
+                exp = Experiment_episode_timesteps(["episodes", "avg_timesteps"])
+                df_tab, aloss, closs, avgs = ppo.main(gym, exp, cart, gamma=gamma, alpha=7e-3, iterations=5000)
+                df_tab = df_tab.drop(['avg_timesteps'], axis=1) 
+                
+                # Provide the correct collumn name
+                ep_col_name = 'g_' + str(gamma)
+                df_tab = df_tab.rename({'avg_timesteps_last': ep_col_name}, axis=1)
+                # Merge the new df with the old one
+                result = pd.merge(df_tab, result, how="left", on='episodes')
+            # Drop the column we do not need    
+            try:
+                result = result.drop(['avg_timesteps'], axis=1) 
+            except:
+                print('no drop avg_timesteps')
+            # Create the plot
+            exp.Create_line_plot(result, 'gamma_experiment_PPO', 'Tweaking Gamma for PPO')
+            result = result[0:0]
+
+        elif arg == "exp_ppo_alpha":
+            result = exp.df # To allow merging of only one dataframe
+
+            alpha_list = [7e-3, 3e-3, 7e-4, 3e-4]
+            
+            for alpha in alpha_list:
+                # Start new experiment and run it
+                exp = Experiment_episode_timesteps(["episodes", "avg_timesteps"])
+                df_tab, aloss, closs, avgs = ppo.main(gym, exp, cart, gamma=.99, alpha=alpha, iterations=5000)
+                df_tab = df_tab.drop(['avg_timesteps'], axis=1) 
+                
+                # Provide the correct collumn name
+                ep_col_name = 'a_' + str(alpha)
+                df_tab = df_tab.rename({'avg_timesteps_last': ep_col_name}, axis=1)
+                # Merge the new df with the old one
+                result = pd.merge(df_tab, result, how="left", on='episodes')
+            # Drop the column we do not need    
+            try:
+                result = result.drop(['avg_timesteps'], axis=1) 
+            except:
+                print('no drop avg_timesteps')
+            # Create the plot
+            exp.Create_line_plot(result, 'alpha_experiment_PPO', 'Tweaking Alpha for PPO')
+            result = result[0:0]  
+        
+        elif arg == "exp_ppo_epochs":
+            result = exp.df # To allow merging of only one dataframe
+
+            epoch_list = [5, 10, 15, 20]
+            
+            for epoch in epoch_list:
+                # Start new experiment and run it
+                exp = Experiment_episode_timesteps(["episodes", "avg_timesteps"])
+                df_tab, aloss, closs, avgs = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000, _epochs=epoch)
+                df_tab = df_tab.drop(['avg_timesteps'], axis=1) 
+                
+                # Provide the correct collumn name
+                ep_col_name = 'eph_' + str(epoch)
+                df_tab = df_tab.rename({'avg_timesteps_last': ep_col_name}, axis=1)
+                # Merge the new df with the old one
+                result = pd.merge(df_tab, result, how="left", on='episodes')
+            # Drop the column we do not need    
+            try:
+                result = result.drop(['avg_timesteps'], axis=1) 
+            except:
+                print('no drop avg_timesteps')
+            # Create the plot
+            exp.Create_line_plot(result, 'epochs_experiment_PPO', 'Tweaking Epochs for PPO')
+            result = result[0:0]  
+
+        elif arg == "exp_ppo_epsilon":
+            result = exp.df # To allow merging of only one dataframe
+
+            epsilon_list = [0.1, 0.2, 0.3, 0.4]
+            
+            for epsilon in epsilon_list:
+                # Start new experiment and run it
+                exp = Experiment_episode_timesteps(["episodes", "avg_timesteps"])
+                df_tab, aloss, closs, avgs = ppo.main(gym, exp, cart, gamma=.99, alpha=7e-3, iterations=5000, clip_pram=epsilon)
+                df_tab = df_tab.drop(['avg_timesteps'], axis=1) 
+                
+                # Provide the correct collumn name
+                ep_col_name = 'e_' + str(epsilon)
+                df_tab = df_tab.rename({'avg_timesteps_last': ep_col_name}, axis=1)
+                # Merge the new df with the old one
+                result = pd.merge(df_tab, result, how="left", on='episodes')
+            # Drop the column we do not need    
+            try:
+                result = result.drop(['avg_timesteps'], axis=1) 
+            except:
+                print('no drop avg_timesteps')
+            # Create the plot
+            exp.Create_line_plot(result, 'epsilon_experiment_PPO', 'Tweaking Epsilon for PPO')
+            result = result[0:0]  
         else:
             print("Invalid argument.")
             exit(1)
